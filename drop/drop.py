@@ -42,7 +42,7 @@ def check_config(cfg):
 def main():
     parser = argparse.ArgumentParser(description='Uploads data to a remote www directory via scp' + 
                                      ' and returns a public url.')
-    parser.add_argument('--destination', '-d', nargs='?', help='Name of destination as found in ' +
+    parser.add_argument('--destination', '-d', nargs='1', help='Name of destination as found in ' +
                         'configuration file.')
     parser.add_argument('infile', nargs='?', type=argparse.FileType('rb'), default=sys.stdin)
     parser.add_argument('--extension', '-e', nargs=1, required=False, 

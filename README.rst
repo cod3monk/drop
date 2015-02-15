@@ -1,7 +1,7 @@
 drop
 ====
 
-Uploads data to a remote www directory via scp and returns a public url.'
+Uploads data to a remote www directory via scp and returns a public url.
 
 Install
 -------
@@ -49,9 +49,12 @@ The DEFAULT section configures default values for all other sections and the def
 Usage
 -----
 You can pase a file by argument::
+
     $ drop defaults.cfg
     http://hawo.net/~sijuhamm/d/NcT0jFb5.cfg
+    
 or any content via stdin::
+
     $ date | ./drop.py
     http://hawo.net/~sijuhamm/d/ephtK9DY
 
@@ -59,7 +62,7 @@ The filename at the remote location is actually a partial sha1 checksum of the f
 
 The full help message reads as follows::
 
-    usage: drop [-h] [--destination [DESTINATION]] [--extension EXTENSION]
+    usage: drop [-h] [--destination DESTINATION] [--extension EXTENSION]
                 [--config-file CONFIG_FILE] [--test]
                 [infile]
 
@@ -70,7 +73,7 @@ The full help message reads as follows::
 
     optional arguments:
       -h, --help            show this help message and exit
-      --destination [DESTINATION], -d [DESTINATION]
+      --destination DESTINATION, -d DESTINATION
                             Name of destination as found in configuration file.
       --extension EXTENSION, -e EXTENSION
                             Overwrites extension on uploaded file.
