@@ -59,7 +59,7 @@ def main():
         args.extension = ['test']
     
     cfg = SafeConfigParser()
-    cfg.read_file(open('defaults.cfg'))
+    cfg.read(['defaults.cfg'])
     cfg.read([os.path.expanduser('~/.drop.cfg'), '/etc/drop.cfg'])
     if args.config_file:
         cfg.readfp(args.config_file)
@@ -70,6 +70,9 @@ def main():
         args.destination = cfg.get('DEFAULT', 'destination')
     
     assert cfg.has_section(args.destination), "Could not find destination section in config."
+    
+    # Get extension before it is overwritten
+    ext = os.path.splitext(args.infile.name)[1]
     
     # Copy into a tempfile, so we can have chmod applied
     tempinfile = tempfile.NamedTemporaryFile()
@@ -95,8 +98,6 @@ def main():
     # Choose extension for uploaded file
     if args.extension:
         ext = '.'+args.extension[0]
-    else:
-        ext = os.path.splitext(args.infile.name)[1]    
     remotefilename = hashstr+ext
     
     assert '/' not in ext, "extension may not contain any slashes."

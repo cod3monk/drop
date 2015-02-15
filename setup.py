@@ -35,7 +35,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
@@ -62,7 +62,7 @@ setup(
     ],
 
     # What does your project relate to?
-    #keywords='',
+    keywords='',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -97,7 +97,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'drop=drop:main',
+            'drop=drop.drop:main',
         ],
     },
 )
