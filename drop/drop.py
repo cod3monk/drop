@@ -44,7 +44,7 @@ def main():
                                      ' and returns a public url.')
     parser.add_argument('--destination', '-d', nargs='?', help='Name of destination as found in ' +
                         'configuration file.')
-    parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    parser.add_argument('infile', nargs='?', type=argparse.FileType('rb'), default=sys.stdin)
     parser.add_argument('--extension', '-e', nargs=1, required=False, 
                         help='Overwrites extension on uploaded file.')
     parser.add_argument('--config-file', '-c', required=False, type=argparse.FileType('r'))
@@ -53,7 +53,7 @@ def main():
     
     if args.test:
         args.infile = tempfile.NamedTemporaryFile()
-        test_data = 'TEST '+str(datetime.now())+'\n'
+        test_data = ('TEST '+str(datetime.now())+'\n').encode('utf-8')
         args.infile.write(test_data)
         args.infile.seek(0)
         args.extension = ['test']
@@ -73,7 +73,10 @@ def main():
     
     # Copy into a tempfile, so we can have chmod applied
     tempinfile = tempfile.NamedTemporaryFile()
-    tempinfile.write(args.infile.read())
+    data = args.infile.read()
+    if hasattr(args.infile, 'encoding') and args.infile.encoding:
+        data = data.encode(args.infile.encoding)
+    tempinfile.write(data)
     tempinfile.seek(0)
     args.infile = tempinfile
     #if cfg.has_option(args.destination, 'chmod'):
@@ -86,7 +89,7 @@ def main():
     
     # Generate hash for uploaded filename
     hash_ = hashlib.sha1(args.infile.read())
-    hashstr = base64.urlsafe_b64encode(hash_.digest())
+    hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
     hashstr = hashstr[:cfg.getint(args.destination, 'hashlength')]
     
     # Choose extension for uploaded file
