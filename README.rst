@@ -85,3 +85,5 @@ TODOs
 Upcoming features:
  * automatic copying of url to clipboard
  * (maybe) support for other upload destinations
+ * multiple file upload
+ * compression and archiving before uploading (optional)
