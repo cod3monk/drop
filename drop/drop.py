@@ -21,6 +21,11 @@ try:
 except ImportError:
     from urllib import urlopen
 
+try:
+    import pyperclip
+    clipboard = True
+except ImportError:
+    clipboard = False
 
 def upload(localpath, remoteserver, remotepath):
     cmd = ['scp', '-pq', localpath, remoteserver+':'+remotepath]
@@ -104,6 +109,9 @@ def main():
 
     url = cfg.get(args.destination, 'url')+remotefilename
     print(url)
+    if clipboard:
+        pyperclip.copy(url)
+        print('copied to clipboard.')
 
     if args.test:
         remote_data = urlopen(url).read()
