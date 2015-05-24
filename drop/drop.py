@@ -9,6 +9,7 @@ import subprocess
 import os
 import hashlib
 import base64
+import shutil
 from datetime import datetime
 try:
     # Python 3 only
@@ -43,13 +44,15 @@ def check_config(cfg):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Uploads data to a remote www directory via scp' +
-                                     ' and returns a public url.')
+    parser = argparse.ArgumentParser(description='Uploads data to a remote www directory via scp '
+                                     'and returns a public url.')
     parser.add_argument('--destination', '-d', nargs=1,
                         help='Name of destination as found in configuration file.')
     parser.add_argument('--list-destinations', '-l', action='store_true',
                         help='List all destinations defined in configuration file.')
-    parser.add_argument('infile', nargs='?', type=argparse.FileType('rb'), default=sys.stdin)
+    parser.add_argument('infile', nargs='+', type=argparse.FileType('rb'), default=sys.stdin,
+                        help='File to upload. If multiple are passed, they will be archived and '
+                             'compressed before uploading.')
     parser.add_argument('--extension', '-e', nargs=1, required=False,
                         help='Overwrites extension on uploaded file.')
     parser.add_argument('--config-file', '-c', required=False, type=argparse.FileType('r'))
@@ -65,13 +68,16 @@ def main():
     
     # Gather all possible destinations from configuration file
     all_destiantions = cfg.sections()
+    
+    # Flag to be set if archive should be deleted after upload
+    remove_archive_file = False
 
     # Create temporary test file with timestamp
     if args.test:
-        args.infile = tempfile.NamedTemporaryFile()
+        args.infile = [tempfile.NamedTemporaryFile()]
         test_data = ('TEST '+str(datetime.now())+'\n').encode('utf-8')
-        args.infile.write(test_data)
-        args.infile.seek(0)
+        args.infile[0].write(test_data)
+        args.infile[0].seek(0)
         args.extension = ['test']
 
     # List all destinations:
@@ -86,7 +92,7 @@ def main():
     destination = None
     if not args.destination:
         # Get default destination from config
-        destination = [cfg.get('DEFAULT', 'destination')]
+        destination = cfg.get('DEFAULT', 'destination')
     elif cfg.has_section(args.destination[0]):
         # Found perfect fit
         destination = args.destination[0]
@@ -96,28 +102,44 @@ def main():
         assert possible_dests, "Could not find destination section in config."
         assert len(possible_dests) == 1, "Could not find unique destination section in config."
         destination = possible_dests[0]
+    
+    # Handle multiple files or directories
+    if len(args.infile) >= 2:
+        # Create temporary folder as base_dir for archive
+        tmp_base_dir = tempfile.mkdtemp()
+        try:
+            for f in args.infile:
+                f.close()
+                shutil.copyfile(f.name, os.path.join(tmp_base_dir, f.name))
+            archive = shutil.make_archive(tmp_base_dir, 'zip', tmp_base_dir)
+            args.infile = [open(archive)]
+            remove_archive_file = archive
+        except Exception as e:
+            raise
+        finally:
+            shutil.rmtree(tmp_base_dir)
 
     # Get extension before it is overwritten
-    ext = os.path.splitext(args.infile.name)[1]
+    ext = os.path.splitext(args.infile[0].name)[1]
 
     # Copy into a tempfile, so we can have chmod applied
     tempinfile = tempfile.NamedTemporaryFile()
-    data = args.infile.read()
-    if hasattr(args.infile, 'encoding') and args.infile.encoding:
-        data = data.encode(args.infile.encoding)
+    data = args.infile[0].read()
+    if hasattr(args.infile[0], 'encoding') and args.infile[0].encoding:
+        data = data.encode(args.infile[0].encoding)
     tempinfile.write(data)
     tempinfile.seek(0)
-    args.infile = tempinfile
+    args.infile[0] = tempinfile
     #if cfg.has_option(args.destination[0], 'chmod'):
     chmod = cfg.getint(destination, 'chmod')
-    os.chmod(args.infile.name, chmod)
+    os.chmod(args.infile[0].name, chmod)
 
     # Get remote location
     remoteserver = cfg.get(destination, 'remoteserver')
     remotedir = cfg.get(destination, 'remotedir')
 
     # Generate hash for uploaded filename
-    hash_ = hashlib.sha1(args.infile.read())
+    hash_ = hashlib.sha1(args.infile[0].read())
     hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
     hashstr = hashstr[:cfg.getint(destination, 'hashlength')]
 
@@ -128,7 +150,7 @@ def main():
 
     assert '/' not in ext, "extension may not contain any slashes."
 
-    upload(args.infile.name, remoteserver, os.path.join(remotedir, remotefilename))
+    upload(args.infile[0].name, remoteserver, os.path.join(remotedir, remotefilename))
 
     url = cfg.get(destination, 'url')+remotefilename
     print(url)
@@ -143,6 +165,10 @@ def main():
             sys.exit(1)
         else:
             print("Success. Retreived same data from url as expected.", file=sys.stderr)
+    
+    if remove_archive_file:
+        args.infile[0].close()
+        os.remove(remove_archive_file)
 
 
 if __name__ == '__main__':

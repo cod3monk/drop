@@ -86,5 +86,4 @@ TODOs
 -----
 Upcoming features:
  * (maybe) support for other upload destinations
- * multiple file upload
- * compression and archiving before uploading (optional)
+ * support more compression/archiving formats
