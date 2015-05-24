@@ -64,12 +64,13 @@ The full help message reads as follows::
 
     usage: drop [-h] [--destination DESTINATION] [--list-destinations]
                 [--extension EXTENSION] [--config-file CONFIG_FILE] [--test]
-                [infile]
+                infile [infile ...]
 
     Uploads data to a remote www directory via scp and returns a public url.
 
     positional arguments:
-      infile
+      infile                File to upload. If multiple are passed, they will be
+                            archived and compressed before uploading.
 
     optional arguments:
       -h, --help            show this help message and exit
