@@ -62,6 +62,9 @@ def main():
     if args.config_file:
         cfg.readfp(args.config_file)
     check_config(cfg)
+    
+    # Gather all possible destinations from configuration file
+    all_destiantions = cfg.sections()
 
     # Create temporary test file with timestamp
     if args.test:
@@ -71,19 +74,28 @@ def main():
         args.infile.seek(0)
         args.extension = ['test']
 
-    if not args.destination:
-        # Get default destination from config
-        args.destination = cfg.get('DEFAULT', 'destination')
-
     # List all destinations:
     if args.list_destinations:
-        for s in cfg.sections():
+        for s in all_destiantions:
             if s == cfg.get('DEFAULT', 'destination'):
                 s += " (default)"
             print(s)
         sys.exit(0)
 
-    assert cfg.has_section(args.destination), "Could not find destination section in config."
+    # Check and select destination
+    destination = None
+    if not args.destination:
+        # Get default destination from config
+        destination = [cfg.get('DEFAULT', 'destination')]
+    elif cfg.has_section(args.destination[0]):
+        # Found perfect fit
+        destination = args.destination[0]
+    else:
+        # Select best fitting destination, if available
+        possible_dests = filter(lambda d: d.startswith(args.destination[0]), all_destiantions)
+        assert possible_dests, "Could not find destination section in config."
+        assert len(possible_dests) == 1, "Could not find unique destination section in config."
+        destination = possible_dests[0]
 
     # Get extension before it is overwritten
     ext = os.path.splitext(args.infile.name)[1]
@@ -96,18 +108,18 @@ def main():
     tempinfile.write(data)
     tempinfile.seek(0)
     args.infile = tempinfile
-    #if cfg.has_option(args.destination, 'chmod'):
-    chmod = cfg.getint(args.destination, 'chmod')
+    #if cfg.has_option(args.destination[0], 'chmod'):
+    chmod = cfg.getint(destination, 'chmod')
     os.chmod(args.infile.name, chmod)
 
     # Get remote location
-    remoteserver = cfg.get(args.destination, 'remoteserver')
-    remotedir = cfg.get(args.destination, 'remotedir')
+    remoteserver = cfg.get(destination, 'remoteserver')
+    remotedir = cfg.get(destination, 'remotedir')
 
     # Generate hash for uploaded filename
     hash_ = hashlib.sha1(args.infile.read())
     hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
-    hashstr = hashstr[:cfg.getint(args.destination, 'hashlength')]
+    hashstr = hashstr[:cfg.getint(destination, 'hashlength')]
 
     # Choose extension for uploaded file
     if args.extension:
@@ -118,7 +130,7 @@ def main():
 
     upload(args.infile.name, remoteserver, os.path.join(remotedir, remotefilename))
 
-    url = cfg.get(args.destination, 'url')+remotefilename
+    url = cfg.get(destination, 'url')+remotefilename
     print(url)
     if clipboard:
         pyperclip.copy(url)
@@ -127,10 +139,10 @@ def main():
     if args.test:
         remote_data = urlopen(url).read()
         if remote_data != test_data:
-            print("Test did not suceed. Different data found at remote url.", file=sys.stderr)
+            print("Failure. Different data found at remote url than expected.", file=sys.stderr)
             sys.exit(1)
         else:
-            print("Everything seems to be in order.", file=sys.stderr)
+            print("Success. Retreived same data from url as expected.", file=sys.stderr)
 
 
 if __name__ == '__main__':
