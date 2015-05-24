@@ -47,19 +47,14 @@ def main():
                                      ' and returns a public url.')
     parser.add_argument('--destination', '-d', nargs=1,
                         help='Name of destination as found in configuration file.')
+    parser.add_argument('--list-destinations', '-l', action='store_true',
+                        help='List all destinations defined in configuration file.')
     parser.add_argument('infile', nargs='?', type=argparse.FileType('rb'), default=sys.stdin)
     parser.add_argument('--extension', '-e', nargs=1, required=False,
                         help='Overwrites extension on uploaded file.')
     parser.add_argument('--config-file', '-c', required=False, type=argparse.FileType('r'))
     parser.add_argument('--test', action='store_true', help='Runs a test on destination.')
     args = parser.parse_args()
-
-    if args.test:
-        args.infile = tempfile.NamedTemporaryFile()
-        test_data = ('TEST '+str(datetime.now())+'\n').encode('utf-8')
-        args.infile.write(test_data)
-        args.infile.seek(0)
-        args.extension = ['test']
 
     cfg = SafeConfigParser()
     cfg.read(['defaults.cfg'])
@@ -68,9 +63,25 @@ def main():
         cfg.readfp(args.config_file)
     check_config(cfg)
 
+    # Create temporary test file with timestamp
+    if args.test:
+        args.infile = tempfile.NamedTemporaryFile()
+        test_data = ('TEST '+str(datetime.now())+'\n').encode('utf-8')
+        args.infile.write(test_data)
+        args.infile.seek(0)
+        args.extension = ['test']
+
     if not args.destination:
         # Get default destination from config
         args.destination = cfg.get('DEFAULT', 'destination')
+
+    # List all destinations:
+    if args.list_destinations:
+        for s in cfg.sections():
+            if s == cfg.get('DEFAULT', 'destination'):
+                s += " (default)"
+            print(s)
+        sys.exit(0)
 
     assert cfg.has_section(args.destination), "Could not find destination section in config."
 

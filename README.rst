@@ -62,8 +62,8 @@ The filename at the remote location is actually a partial sha1 checksum of the f
 
 The full help message reads as follows::
 
-    usage: drop [-h] [--destination DESTINATION] [--extension EXTENSION]
-                [--config-file CONFIG_FILE] [--test]
+    usage: drop [-h] [--destination DESTINATION] [--list-destinations]
+                [--extension EXTENSION] [--config-file CONFIG_FILE] [--test]
                 [infile]
 
     Uploads data to a remote www directory via scp and returns a public url.
@@ -75,6 +75,8 @@ The full help message reads as follows::
       -h, --help            show this help message and exit
       --destination DESTINATION, -d DESTINATION
                             Name of destination as found in configuration file.
+      --list-destinations, -l
+                            List all destinations defined in configuration file.
       --extension EXTENSION, -e EXTENSION
                             Overwrites extension on uploaded file.
       --config-file CONFIG_FILE, -c CONFIG_FILE
