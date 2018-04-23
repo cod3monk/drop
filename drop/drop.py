@@ -28,8 +28,10 @@ try:
 except ImportError:
     clipboard = False
 
-def upload(localpath, remoteserver, remotepath):
-    cmd = ['scp', '-pq', localpath, remoteserver+':'+remotepath]
+def upload(localpath, remoteserver, remotepath, recursive=False):
+    cmd = ['scp', '-pq']
+    cmd[-1] += 'r'
+    cmd += [localpath, remoteserver+':'+remotepath]
     try:
         subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
@@ -54,6 +56,9 @@ def main():
     parser.add_argument('infile', nargs='+', type=argparse.FileType('rb'), default=sys.stdin,
                         help='File to upload. If multiple are passed, they will be archived and '
                              'compressed before uploading.')
+    parser.add_argument('--preserve-name', '-p', action='store_true',
+                        help='Will preserve original filename at remote location, by adding an '
+                             'intermediate directory.')
     parser.add_argument('--extension', '-e', nargs=1, required=False,
                         help='Overwrites extension on uploaded file.')
     parser.add_argument('--config-file', '-c', required=False, type=argparse.FileType('r'))
@@ -114,47 +119,82 @@ def main():
                 file_name = os.path.split(f.name)[1]
                 shutil.copyfile(f.name, os.path.join(tmp_base_dir, file_name))
             archive = shutil.make_archive(tmp_base_dir, 'zip', tmp_base_dir)
-            args.infile = [open(archive, 'rb')]
+            original_file = open(archive, 'rb')
             remove_archive_file = archive
         except Exception as e:
             raise
         finally:
             shutil.rmtree(tmp_base_dir)
+    else:
+        original_file = args.infile[0]
 
     # Get extension before it is overwritten
-    ext = os.path.splitext(args.infile[0].name)[1]
+    ext = os.path.splitext(original_file.name)[1]
+    
+    if args.preserve_name:
+        assert len(args.infile) == 1, "--preserve-name / -p is not supported with multiple files."
+        assert not args.extension, "extension is always preserved with name."
+        tmp_base_dir = tempfile.mkdtemp()
+        try:
+            original_file_name = os.path.split(original_file.name)[1]
+            temp_infilename = os.path.join(tmp_base_dir, original_file_name)
+            shutil.copyfile(original_file.name, temp_infilename)
+            #if cfg.has_option(args.destination[0], 'chmod'):
+            chmod = cfg.getint(destination, 'chmod')
+            os.chmod(temp_infilename, chmod)
+            os.chmod(tmp_base_dir, chmod+73)  # Make directory executable for owner, group and user
+        
+            # Get remote location
+            remoteserver = cfg.get(destination, 'remoteserver')
+            remotedir = cfg.get(destination, 'remotedir')
+        
+            # Generate hash for uploaded filename
+            hash_ = hashlib.sha1(original_file.read())
+            original_file.close()
+            hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
+            hashstr = hashstr[:cfg.getint(destination, 'hashlength')]
+        
+            assert '/' not in ext, "extension may not contain any slashes."
+        
+            upload(tmp_base_dir, remoteserver, os.path.join(remotedir, hashstr), recursive=True)
 
-    # Copy into a tempfile, so we can have chmod applied
-    tempinfile = tempfile.NamedTemporaryFile()
-    data = args.infile[0].read()
-    if hasattr(args.infile[0], 'encoding') and args.infile[0].encoding:
-        data = data.encode(args.infile[0].encoding)
-    tempinfile.write(data)
-    tempinfile.seek(0)
-    args.infile[0] = tempinfile
-    #if cfg.has_option(args.destination[0], 'chmod'):
-    chmod = cfg.getint(destination, 'chmod')
-    os.chmod(args.infile[0].name, chmod)
+            url = cfg.get(destination, 'url')+hashstr+'/'+original_file_name
+        except Exception as e:
+            raise
+        finally:
+            shutil.rmtree(tmp_base_dir)
+    else:
+        # Copy into a tempfile, so we can have chmod applied
+        temp_infile = tempfile.NamedTemporaryFile()
+        data = original_file.read()
+        original_file.close()
+        if hasattr(original_file, 'encoding') and original_file.encoding:
+            data = data.encode(original_file.encoding)
+        temp_infile.write(data)
+        temp_infile.seek(0)
+        #if cfg.has_option(args.destination[0], 'chmod'):
+        chmod = cfg.getint(destination, 'chmod')
+        os.chmod(temp_infile.name, chmod)
+        
+        # Get remote location
+        remoteserver = cfg.get(destination, 'remoteserver')
+        remotedir = cfg.get(destination, 'remotedir')
+        
+        # Generate hash for uploaded filename
+        hash_ = hashlib.sha1(temp_infile.read())
+        hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
+        hashstr = hashstr[:cfg.getint(destination, 'hashlength')]
+        
+        # Choose extension for uploaded file
+        if args.extension:
+            ext = '.'+args.extension[0]
+        remotefilename = hashstr+ext
+        
+        assert '/' not in ext, "extension may not contain any slashes."
+        
+        upload(temp_infile.name, remoteserver, os.path.join(remotedir, remotefilename))
 
-    # Get remote location
-    remoteserver = cfg.get(destination, 'remoteserver')
-    remotedir = cfg.get(destination, 'remotedir')
-
-    # Generate hash for uploaded filename
-    hash_ = hashlib.sha1(args.infile[0].read())
-    hashstr = base64.urlsafe_b64encode(hash_.digest()).decode('utf-8')
-    hashstr = hashstr[:cfg.getint(destination, 'hashlength')]
-
-    # Choose extension for uploaded file
-    if args.extension:
-        ext = '.'+args.extension[0]
-    remotefilename = hashstr+ext
-
-    assert '/' not in ext, "extension may not contain any slashes."
-
-    upload(args.infile[0].name, remoteserver, os.path.join(remotedir, remotefilename))
-
-    url = cfg.get(destination, 'url')+remotefilename
+        url = cfg.get(destination, 'url')+remotefilename
     print(url)
     if clipboard:
         pyperclip.copy(url)
@@ -169,7 +209,7 @@ def main():
             print("Success. Retreived same data from url as expected.", file=sys.stderr)
     
     if remove_archive_file:
-        args.infile[0].close()
+        temp_infile.close()
         os.remove(remove_archive_file)
 
 
