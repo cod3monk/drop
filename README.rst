@@ -39,7 +39,7 @@ A sample config file would be::
     # remote directory can be relative (to home directory) or absolute:
     remotedir = public_html/d/
     # publishing url, this must represent the above directory:
-    url = http://hawo.net/~sijuhamm/d/
+    url = https://hawo.net/~sijuhamm/d/
     # all defaults can be overwritten for any destination. For example the hashlength:
     hashlength = 10
 
@@ -51,19 +51,19 @@ Usage
 You can pase a file by argument::
 
     $ drop defaults.cfg
-    http://hawo.net/~sijuhamm/d/NcT0jFb5.cfg
+    https://hawo.net/~sijuhamm/d/NcT0jFb5.cfg
     
 multiple files (will automatically be zipped)::
 
     $ drop 1.txt 2.txt 3.txt
-    http://hawo.net/~sijuhamm/d/1AKBbka7.zip
+    https://hawo.net/~sijuhamm/d/1AKBbka7.zip
     
 or any content via stdin::
 
     $ date | ./drop.py
-    http://hawo.net/~sijuhamm/d/ephtK9DY
+    https://hawo.net/~sijuhamm/d/ephtK9DY
 
-The filename at the remote location is actually a partial sha1 checksum of the file. The length of the checksum can be set in the configuration file. The extension is preserved when possible and can also be overwritten with the --extension parameter.
+The filename at the remote location is actually a partial sha1 checksum of the file. The length of the checksum can be set in the configuration file. The extension is preserved when possible, but can also be overwritten with the --extension parameter. If the original file name is to be preserved, use -p or --preserve-name, this will create an intermediate directory based on the checksum and place the file inside to preserve its name, while keeping its URL unguessable.
 
 The full help message reads as follows::
 
