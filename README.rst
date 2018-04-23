@@ -53,6 +53,11 @@ You can pase a file by argument::
     $ drop defaults.cfg
     http://hawo.net/~sijuhamm/d/NcT0jFb5.cfg
     
+multiple files (will automatically be zipped)::
+
+    $ drop 1.txt 2.txt 3.txt
+    http://hawo.net/~sijuhamm/d/1AKBbka7.zip
+    
 or any content via stdin::
 
     $ date | ./drop.py
