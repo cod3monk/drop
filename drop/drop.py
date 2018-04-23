@@ -142,7 +142,8 @@ def main():
             #if cfg.has_option(args.destination[0], 'chmod'):
             chmod = cfg.getint(destination, 'chmod')
             os.chmod(temp_infilename, chmod)
-            os.chmod(tmp_base_dir, chmod+73)  # Make directory executable for owner, group and user
+            # Make directory executable for owner, group and user
+            os.chmod(tmp_base_dir, chmod+0o111)
         
             # Get remote location
             remoteserver = cfg.get(destination, 'remoteserver')
