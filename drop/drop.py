@@ -32,7 +32,8 @@ def upload(localpath, remoteserver, remotepath):
     cmd = ['scp', '-pq', localpath, remoteserver+':'+remotepath]
     try:
         subprocess.check_call(cmd)
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print(' '.join(cmd))
         print("SCP failed, this has mainly these reasons: remote directory not present, scp " +
               "command invalid or unable to login.", file=sys.stderr)
         sys.exit(1)
@@ -110,9 +111,10 @@ def main():
         try:
             for f in args.infile:
                 f.close()
-                shutil.copyfile(f.name, os.path.join(tmp_base_dir, f.name))
+                file_name = os.path.split(f.name)[1]
+                shutil.copyfile(f.name, os.path.join(tmp_base_dir, file_name))
             archive = shutil.make_archive(tmp_base_dir, 'zip', tmp_base_dir)
-            args.infile = [open(archive)]
+            args.infile = [open(archive, 'rb')]
             remove_archive_file = archive
         except Exception as e:
             raise
