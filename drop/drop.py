@@ -21,6 +21,10 @@ try:
     from urllib.request import urlopen
 except ImportError:
     from urllib import urlopen
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
 
 try:
     import pyperclip
@@ -159,7 +163,7 @@ def main():
         
             upload(tmp_base_dir, remoteserver, os.path.join(remotedir, hashstr), recursive=True)
 
-            url = cfg.get(destination, 'url')+hashstr+'/'+original_file_name
+            url = cfg.get(destination, 'url')+hashstr+'/'+quote(original_file_name)
         except Exception as e:
             raise
         finally:
@@ -195,7 +199,7 @@ def main():
         
         upload(temp_infile.name, remoteserver, os.path.join(remotedir, remotefilename))
 
-        url = cfg.get(destination, 'url')+remotefilename
+        url = cfg.get(destination, 'url')+quote(remotefilename)
     print(url)
     if clipboard:
         pyperclip.copy(url)
