@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import sys
@@ -11,20 +9,9 @@ import hashlib
 import base64
 import shutil
 from datetime import datetime
-try:
-    # Python 3 only
-    from configparser import SafeConfigParser
-except ImportError:
-    # Python 2 only
-    from ConfigParser import SafeConfigParser
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import urlopen
-try:
-    from urllib.parse import quote
-except ImportError:
-    from urllib import quote
+from configparser import ConfigParser
+from urllib.request import urlopen
+from urllib.parse import quote
 
 try:
     import pyperclip
@@ -69,7 +56,7 @@ def main():
     parser.add_argument('--test', action='store_true', help='Runs a test on destination.')
     args = parser.parse_args()
 
-    cfg = SafeConfigParser()
+    cfg = ConfigParser()
     cfg.read(['defaults.cfg'])
     cfg.read([os.path.expanduser('~/.drop.cfg'), '/etc/drop.cfg'])
     if args.config_file:
